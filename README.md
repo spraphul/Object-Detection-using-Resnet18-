@@ -1,19 +1,7 @@
-# Object-Detection-using-Resnet18
-
-
-# Assignment 3
 
 # Instructions
 
 1. You have to use only this notebook for all your code.
-2. All the results and plots should be mentioned in this notebook.
-3. For final submission, submit this notebook along with the report ( usual 2-4 pages, latex typeset, which includes the challenges faces and details of additional steps, if any)
-4. Marking scheme
-    -  **60%**: Your code should be able to detect bounding boxes using resnet 18, correct data loading and preprocessing. Plot any 5 correct and 5 incorrect sample detections from the test set in this notebook for both the approached (1 layer and 2 layer detection), so total of 20 plots.
-    -  **20%**: Use two layers (multi-scale feature maps) to detect objects independently as in SSD (https://arxiv.org/abs/1512.02325).  In this method, 1st detection will be through the last layer of Resnet18 and the 2nd detection could be through any layer before the last layer. SSD uses lower resolution layers to detect larger scale objects. 
-    -  **20%**: Implement Non-maximum suppression (NMS) (should not be imported from any library) on the candidate bounding boxes.
-    
-5. Report AP for each of the three class and mAP score for the complete test set.
 
 
 ```python
@@ -160,8 +148,8 @@ transformations = transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-# train_dataset = voc_dataset(root_dir='Datasets/Train_VOCdevkit/', train=True, transform=transformations) # Supply proper root_dir
-# train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+train_dataset = voc_dataset(root_dir='Datasets/Train_VOCdevkit/', train=True, transform=transformations) # Supply proper root_dir
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 ```
 
 # Fine-tuning
@@ -171,87 +159,87 @@ transformations = transforms.Compose([
 
 
 ```python
-# device = torch.device("cuda" if torch.cuda.is_available() 
-#                                   else "cpu")
-# model = models.resnet18(pretrained=True)
-# # for param in model.parameters():
-# #     param.requires_grad = False
-# model.fc = nn.Linear(model.fc.in_features, 4)
+device = torch.device("cuda" if torch.cuda.is_available() 
+                                  else "cpu")
+model = models.resnet18(pretrained=True)
+# for param in model.parameters():
+#     param.requires_grad = False
+model.fc = nn.Linear(model.fc.in_features, 4)
 ```
 
 
 ```python
-# criterion = nn.CrossEntropyLoss()
-# # Update if any errors occur
-# optimizer = optim.SGD(model.parameters(), learning_rate, hyp_momentum)
+criterion = nn.CrossEntropyLoss()
+# Update if any errors occur
+optimizer = optim.SGD(model.parameters(), learning_rate, hyp_momentum)
 
 ```
 
 
 ```python
-# #One Layer Detection
-# def train(curr_epoch):
-#     model.train()
-#     running_loss = 0
-#     running_corrects = 0
-# #     steps =0
-#     for inputs, labels in train_loader:
-# #         print(type(inputs), labels)
-# #         steps += 1
-#         inputs, labels = inputs.to(device), labels.to(device)
-#         optimizer.zero_grad()
-#         logps = model.forward(inputs)
+#One Layer Detection
+def train(curr_epoch):
+    model.train()
+    running_loss = 0
+    running_corrects = 0
+#     steps =0
+    for inputs, labels in train_loader:
+#         print(type(inputs), labels)
+#         steps += 1
+        inputs, labels = inputs.to(device), labels.to(device)
+        optimizer.zero_grad()
+        logps = model.forward(inputs)
         
-#         top_p, top_class = logps.topk(1, dim=1)
-#         equals = top_class == labels.view(*top_class.shape)
+        top_p, top_class = logps.topk(1, dim=1)
+        equals = top_class == labels.view(*top_class.shape)
         
-#         loss = criterion(logps, labels)
-#         running_loss += loss.item()
-#         loss.backward()
-#         optimizer.step()
+        loss = criterion(logps, labels)
+        running_loss += loss.item()
+        loss.backward()
+        optimizer.step()
         
     
-#         running_corrects += torch.mean(equals.type(torch.FloatTensor)).item()
+        running_corrects += torch.mean(equals.type(torch.FloatTensor)).item()
 
         
-#     train_epoch_loss = running_loss/len(train_loader)
-#     train_acc = running_corrects /len(train_loader)
+    train_epoch_loss = running_loss/len(train_loader)
+    train_acc = running_corrects /len(train_loader)
     
-#     test_loss = 0
-#     test_accuracy = 0
-#     model.eval()
-#     with torch.no_grad():
-#         for inputs, labels in test_loader:
-#             inputs, labels = nputs.to(device),labels.to(device)
-#             logps = model.forward(inputs)
-#             batch_loss = criterion(logps, labels)
-#             test_loss += batch_loss.item()
+    test_loss = 0
+    test_accuracy = 0
+    model.eval()
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            inputs, labels = nputs.to(device),labels.to(device)
+            logps = model.forward(inputs)
+            batch_loss = criterion(logps, labels)
+            test_loss += batch_loss.item()
 
-#             ps = torch.exp(logps)
-#             top_p, top_class = ps.topk(1, dim=1)
-#             equals = top_class == labels.view(*top_class.shape)
-#             test_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
+            ps = torch.exp(logps)
+            top_p, top_class = ps.topk(1, dim=1)
+            equals = top_class == labels.view(*top_class.shape)
+            test_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
             
-#     test_epoch_loss = test_loss/len(test_loader)
-#     test_acc = test_accuracy/len(test_loader)
+    test_epoch_loss = test_loss/len(test_loader)
+    test_acc = test_accuracy/len(test_loader)
 
-#     print('{} Train_Loss: {:.4f} Train_Acc: {:.4f} Test_Loss: {:.4f} Test_Acc: {:.4f}'.format(
-#          curr_epoch,train_epoch_loss, train_acc, test_epoch_loss, test_acc))
-#     print("-------------------------")
+    print('{} Train_Loss: {:.4f} Train_Acc: {:.4f} Test_Loss: {:.4f} Test_Acc: {:.4f}'.format(
+         curr_epoch,train_epoch_loss, train_acc, test_epoch_loss, test_acc))
+    print("-------------------------")
             
-#     torch.save(model, 'one_layer_model.pth')
+    torch.save(model, 'one_layer_model.pth')
 ```
 
 
 ```python
-# for curr_epoch in range(num_epochs):
-#     train(curr_epoch)
+for curr_epoch in range(num_epochs):
+    train(curr_epoch)
 ```
 
 
 ```python
-# for curr_epoch in range(num_epochs):
-#     train(curr_epoch)
+for curr_epoch in range(num_epochs):
+    train(curr_epoch)
 ```
 
 
